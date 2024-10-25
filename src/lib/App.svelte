@@ -7,136 +7,128 @@
 
 	export let appProps: Writable<AppProps> | undefined;
 
-	let mainElement: HTMLElement | null = null;
-
-	let tl: HTMLDivElement | null = null;
-	let tr: HTMLDivElement | null = null;
-	let bl: HTMLDivElement | null = null;
-	let br: HTMLDivElement | null = null;
-	let l: HTMLDivElement | null = null;
-	let r: HTMLDivElement | null = null;
-	let b: HTMLDivElement | null = null;
-
 	const handleDrag = (e: CustomEvent<DragEventData>, direction: string) => {
 		const dx = e.detail.offsetX;
 		const dy = e.detail.offsetY;
 
-		if (!$appProps) return;
+		if (!$appProps || !main) return;
 
-		switch (direction) {
-			case 'se':
-				$appProps.interface.size.width = Math.min(Math.max(width + dx, 50), 500);
-				$appProps.interface.size.height = Math.min(Math.max(height + dy, 50), 500);
-				break;
-			case 'e':
-				$appProps.interface.size.width = Math.min(Math.max(width + dx, 50), 500);
-				break;
-			case 's':
-				$appProps.interface.size.height = Math.min(Math.max(height + dy, 50), 500);
-				break;
-			case 'sw':
-				position.x = Math.min(Math.max(npos.x + dx, 0), sw - $appProps.interface.size.width);
-				$appProps.interface.size.width = Math.min(Math.max(width - dx, 50), 500);
-				$appProps.interface.size.height = Math.min(Math.max(height + dy, 50), 500);
-				break;
-			case 'w':
-				position.x = Math.min(Math.max(npos.x + dx, 0), sw - $appProps.interface.size.width);
-				$appProps.interface.size.width = Math.min(Math.max(width - dx, 50), 500);
-				break;
-			case 'nw':
-				position.x = Math.min(Math.max(npos.x + dx, 0), sw - $appProps.interface.size.width);
-				position.y = Math.min(Math.max(npos.y + dy, 0), sh - $appProps.interface.size.height);
-				$appProps.interface.size.width = Math.min(Math.max(width + dx, 50), 500);
-				$appProps.interface.size.height = Math.min(Math.max(height - dy, 50), 500);
-				break;
-			case 'n':
-				position.y = Math.min(Math.max(npos.y + dy, 0), sh - $appProps.interface.size.height);
-				$appProps.interface.size.height = Math.min(Math.max(height - dy, 50), 500);
-				break;
-			case 'ne':
-				position.y = Math.min(Math.max(npos.y + dy, 0), sh - $appProps.interface.size.height);
-				$appProps.interface.size.width = Math.min(Math.max(width + dx, 50), 500);
-				$appProps.interface.size.height = Math.min(Math.max(height - dy, 50), 500);
-				break;
+		translate = main.style.transform || 'translate3d(0px, 0px, 0px)';
+
+		const size = (value: number) => {
+			return Math.min(Math.max(value, 50), 500);
+		}
+
+		if (direction.includes('n')) {
+			$appProps.interface.size.height = size(height - dy);
+		} else if (direction.includes('s')) {
+			$appProps.interface.size.height = size(height + dy);
+		}
+
+		if (direction.includes('w')) {
+			$appProps.interface.size.width = size(width - dx);
+		} else if (direction.includes('e')) {
+			$appProps.interface.size.width = size(width + dx);
+		}
+
+		if (direction === 'sw' || direction === 'w' || direction === 'nw') {
+			npos.x = position.x + $appProps.interface.size.width;
+		} else if (direction === 'ne' || direction === 'e' || direction === 'se') {
+			npos.x = position.x;
+		}
+
+		if (direction === 'nw' || direction === 'n' || direction === 'ne') {
+			npos.y = position.y + $appProps.interface.size.height;
+		} else if (direction === 'sw' || direction === 's' || direction === 'se') {
+			npos.y = position.y;
 		}
 	};
 
-	let width = 0, height = 0
+	let width = 0, height = 0;
 	let dpos = { x: 0, y: 0 };
+
+	let main: HTMLElement | null = null;
 
 	let npos = { x: 0, y: 0 };
 	let position = { x: 0, y: 0 };
 
+	let translate = 'translate3d(0px, 0px, 0px)';
+
 	let sw = 0, sh = 0;
+
+	const directions = [
+		{
+			direction: 'nw',
+			style: 'w-2 h-2 -top-2 -left-2 cursor-nw-resize',
+		},
+		{
+			direction: 'ne',
+			style: 'w-2 h-2 -top-2 -right-2 cursor-ne-resize',
+		},
+		{
+			direction: 'sw',
+			style: 'w-2 h-2 -bottom-2 -left-2 cursor-sw-resize',
+		},
+		{
+			direction: 'se',
+			style: 'w-2 h-2 -bottom-2 -right-2 cursor-se-resize',
+		},
+		{
+			direction: 'w',
+			style: 'w-2 h-[calc(100%-25px)] top-[25px] -left-2 cursor-w-resize',
+		},
+		{
+			direction: 'e',
+			style: 'w-2 h-[calc(100%-25px)] top-[25px] -right-2 cursor-e-resize',
+		},
+		{
+			direction: 's',
+			style: 'w-full h-2 -bottom-2 left-0 cursor-s-resize',
+		},
+	]
 </script>
 
 <svelte:window bind:innerWidth={sw} bind:innerHeight={sh} />
 
 {#if $appProps}
 	<main
-		bind:this={mainElement}
+		bind:this={main}
 		use:draggable={{
 			handle: '.drag',
 			position,
 		}}
 		on:pointerdown={() => { if ($appProps) activeApp.set($appProps)}}
 		style="
-            width: {$appProps.interface.size.width}px;
-            height: {$appProps.interface.size.height}px;
-        "
+				width: {$appProps.interface.size.width}px;
+				height: {$appProps.interface.size.height + 25}px;
+				display: grid;
+				grid-template-rows: 25px 1fr;
+				transform: {translate};
+		"
 		class="relative shadow-lg shadow-slate-400/20 {$activeApp === $appProps ? 'z-10' : 'z-0'}"
 	>
-	    <div
-		    class="w-full h-[calc(100%+25px)] z-10 pointer-events-none absolute top-0 left-0 rounded-lg transition-[background] duration-300 {$activeApp === $appProps ? 'bg-black/0' : 'bg-black/20'}"
-		></div>
 		<div
-			role="button"
-			tabindex="0"
-			bind:this={tl}
-			class="w-2 h-2 absolute -top-1 -left-1"
-			use:draggable={{
-				position: dpos,
-				onDragStart: () => { width = $appProps.interface.size.width; height = $appProps.interface.size.height; },
-				onDrag: () => { dpos = { x: 0, y: 0 }; npos = { x: 0, y: 0 } }
-			}}
-			on:neodrag={(e) => handleDrag(e, 'nw')}
+			class="w-full h-full z-10 pointer-events-none absolute top-0 left-0 rounded-lg transition-[background] duration-300 {$activeApp === $appProps ? 'bg-black/0' : 'bg-black/20'}"
 		></div>
-		<div
-		    role="button"
-		    tabindex="0"
-		    bind:this={tr}
-			class="w-2 h-2 absolute -top-1 -right-1"
-			use:draggable={{
-				position: dpos,
-				onDragStart: () => { width = $appProps.interface.size.width; height = $appProps.interface.size.height; },
-				onDrag: () => { dpos = { x: 0, y: 0 }; npos = { x: 0, y: 0 } }
-			}}
-			on:neodrag={(e) => handleDrag(e, 'ne')}
-		></div>
-		<div
-		    role="button"
-			tabindex="0"
-			bind:this={bl}
-			class="w-2 h-2 absolute -bottom-7 -left-1"
-			use:draggable={{
-				position: dpos,
-				onDragStart: () => { width = $appProps.interface.size.width; height = $appProps.interface.size.height; },
-				onDrag: () => { dpos = { x: 0, y: 0 } }
-			}}
-			on:neodrag={(e) => handleDrag(e, 'sw')}
-		></div>
-		<div
-		    role="button"
-			tabindex="0"
-		    bind:this={br}
-			class="w-2 h-2 absolute -bottom-7 -right-1"
-			use:draggable={{
-				position: dpos,
-				onDragStart: () => { width = $appProps.interface.size.width; height = $appProps.interface.size.height; },
-				onDrag: () => { dpos = { x: 0, y: 0 } }
-			}}
-			on:neodrag={(e) => handleDrag(e, 'se')}
-		></div>
+		{#each directions as dir}
+			<div
+				role="button"
+				tabindex="0"
+				class="absolute {dir.style}"
+				use:draggable={{
+					position: dpos,
+					onDragStart: () => {
+						width = $appProps.interface.size.width;
+						height = $appProps.interface.size.height;
+					},
+					onDrag: () => {
+						dpos = { x: 0, y: 0 };
+						npos = { x: 0, y: 0 };
+					}
+				}}
+				on:neodrag={(e) => handleDrag(e, dir.direction)}
+			></div>
+		{/each}
 		<header
 			class="w-full h-[25px] px-1 flex justify-between items-center bg-slate-600/50 text-slate-50 backdrop-blur-md rounded-t-lg"
 			role="button"
@@ -161,42 +153,6 @@
 			</div>
 		</header>
 		<div class="w-full h-full relative bg-slate-50 rounded-b-lg">
-			<div
-			    role="button"
-				tabindex="0"
-				bind:this={l}
-				class="w-2 h-[calc(100%-4px)] absolute top-0 -left-2"
-				use:draggable={{
-					position: dpos,
-					onDragStart: () => { width = $appProps.interface.size.width; height = $appProps.interface.size.height; },
-					onDrag: () => { dpos = { x: 0, y: 0 }; npos = { x: 0, y: 0 } }
-				}}
-				on:neodrag={(e) => handleDrag(e, 'w')}
-			></div>
-			<div
-			    role="button"
-				tabindex="0"
-				bind:this={r}
-				class="w-2 h-[calc(100%-4px)] absolute top-0 -right-2"
-				use:draggable={{
-					position: dpos,
-					onDragStart: () => { width = $appProps.interface.size.width; height = $appProps.interface.size.height; },
-					onDrag: () => { dpos = { x: 0, y: 0 }; npos = { x: 0, y: 0 } }
-				}}
-				on:neodrag={(e) => handleDrag(e, 'e')}
-			></div>
-			<div
-			    role="button"
-				tabindex="0"
-				bind:this={b}
-				class="w-[calc(100%-4px)] h-2 absolute -bottom-2 left-0"
-				use:draggable={{
-					position: dpos,
-					onDragStart: () => { width = $appProps.interface.size.width; height = $appProps.interface.size.height; },
-					onDrag: () => { dpos = { x: 0, y: 0 }; npos = { x: 0, y: 0 } }
-				}}
-				on:neodrag={(e) => handleDrag(e, 's')}
-			></div>
 			<svelte:component this={$appProps.component} />
 		</div>
 	</main>
